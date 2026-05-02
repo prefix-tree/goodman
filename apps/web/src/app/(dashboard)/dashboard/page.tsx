@@ -1,7 +1,15 @@
+import { ChatPanel } from "@/components/chat-panel";
+import { ProfilePanel } from "@/components/profile-panel";
+
 export default function DashboardPage() {
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <h1 className="text-2xl font-semibold text-muted-foreground">Dashboard</h1>
+    <div className="flex h-screen">
+      <div className="w-1/2 border-r">
+        <ChatPanel />
+      </div>
+      <div className="w-1/2">
+        <ProfilePanel />
+      </div>
     </div>
   );
 }
