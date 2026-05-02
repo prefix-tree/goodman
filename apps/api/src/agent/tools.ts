@@ -2,7 +2,7 @@ import { llm } from "@livekit/agents";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { caseStateService } from "../case/state.js";
-import { casesCollection } from "../entities/index.js";
+import { casesCollection, notesCollection } from "../entities/index.js";
 import { getPlaybook } from "../playbooks/index.js";
 import { getNextQuestion } from "../extraction/question.js";
 import type { SessionUserData } from "./types.js";
@@ -107,8 +107,8 @@ export const note = llm.tool({
       .optional()
       .describe("Direct quote from client message"),
   }),
-  execute: async ({ facts, completes_task_id }, opts) => {
-    console.log("[tool:note] called with:", JSON.stringify({ facts, completes_task_id }));
+  execute: async ({ facts, completes_task_id, evidence }, opts) => {
+    console.log("[tool:note] called with:", JSON.stringify({ facts, completes_task_id, evidence }));
     const userData = opts.ctx.userData as SessionUserData;
     const caseId = userData.caseId;
     if (!caseId) {
@@ -151,6 +151,19 @@ export const note = llm.tool({
     if (!result) {
       return { accepted: false, error: "Failed to update case." };
     }
+
+    const now = new Date();
+    const noteContent =
+      evidence?.trim() ||
+      `Structured facts recorded:\n${JSON.stringify(facts, null, 2)}`;
+    const noteInsert = await notesCollection().insertOne({
+      _id: new ObjectId(),
+      caseId: new ObjectId(caseId),
+      userId: new ObjectId(userData.userId),
+      content: noteContent,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     // Handle explicit task completion signal from agent
     if (completes_task_id) {
@@ -217,6 +230,7 @@ export const note = llm.tool({
       next_pending_task: nextPending
         ? `${nextPending.id} (${nextPending.topic})`
         : null,
+      note_id: noteInsert.insertedId.toHexString(),
       suggestion,
     };
     console.log("[tool:note] result:", JSON.stringify(noteResult, null, 2));

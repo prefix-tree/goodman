@@ -86,9 +86,7 @@ export default defineAgent({
       console.log("[agent] FunctionToolsExecuted:", JSON.stringify(ev, null, 2));
     });
 
-    const greeting = meta.userName
-      ? `Hello ${meta.userName}! Thank you for calling SOL. I'm Sofia, and I'll be helping you today.`
-      : "Hello! Thank you for calling SOL. I'm Sofia, and I'll be helping you today.";
+    const greeting =  `Hello! Thank you for calling SOL. I'll be helping you today.`;
     session.say(greeting);
   },
 });
