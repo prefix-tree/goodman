@@ -5,9 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ProfileCases } from "@/components/profile/cases";
 import { CaseDetail } from "@/components/profile/case-detail";
 import { Badge } from "@/components/ui/badge";
-import { User, FolderKanban } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useVoiceSession } from "@/hooks/use-voice-session";
+import { useUserStore } from "@/stores/user-store";
+import { User, FolderKanban, Phone } from "lucide-react";
 
 export function ProfilePanel() {
+  const userId = useUserStore((s) => s.userId);
+  const { connect, status } = useVoiceSession();
+
+  async function handleCallSol() {
+    if (!userId) return;
+    await connect({ userId, playbook: "general" });
+  }
+
   return (
     <div className="flex h-full flex-col">
       <PillTabs defaultValue="home" className="flex h-full flex-col gap-0">
@@ -21,6 +32,28 @@ export function ProfilePanel() {
 
         <PillTabsContent value="home" className="overflow-auto p-4">
           <div className="flex flex-col gap-4">
+            <Card className="bg-primary/5 ring-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Phone className="size-4" />
+                  Talk to Sol
+                </CardTitle>
+                <CardDescription>
+                  Start a voice conversation to discuss your case, update details, or get legal guidance.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={handleCallSol}
+                  disabled={!userId || status === "connecting"}
+                  className="w-full gap-2"
+                >
+                  <Phone className="size-4" />
+                  {status === "connecting" ? "Connecting..." : "Start Call"}
+                </Button>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

@@ -6,6 +6,9 @@ import {
   type TranscriptEntry,
 } from "@/stores/case-store";
 
+// SSE must connect directly to the API — Next.js rewrites buffer streaming responses
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
 export function useCaseStream(caseId: string | null) {
   const [connected, setConnected] = useState(false);
   const sourceRef = useRef<EventSource | null>(null);
@@ -17,7 +20,8 @@ export function useCaseStream(caseId: string | null) {
   useEffect(() => {
     if (!caseId) return;
 
-    const source = new EventSource(`/api/case-stream/${caseId}/stream`);
+    const url = `${API_URL}/case-stream/${caseId}/stream`;
+    const source = new EventSource(url);
     sourceRef.current = source;
 
     source.addEventListener("initial_state", (e) => {

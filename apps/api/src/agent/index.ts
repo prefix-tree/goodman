@@ -5,7 +5,8 @@ import {
   type JobProcess,
   ServerOptions,
 } from "@livekit/agents";
-import { LLM, TTS } from "@livekit/agents-plugin-openai";
+import { LLM } from "@livekit/agents-plugin-google";
+import { TTS } from "@livekit/agents-plugin-elevenlabs";
 import * as silero from "@livekit/agents-plugin-silero";
 import { voice } from "@livekit/agents";
 import { fileURLToPath } from "node:url";
@@ -64,8 +65,8 @@ export default defineAgent({
 
     const session = new voice.AgentSession<SessionUserData>({
       vad: ctx.proc.userData.vad as silero.VAD,
-      llm: new LLM({ model: "gpt-4o-mini" }),
-      tts: new TTS({ voice: "ash" }),
+      llm: new LLM({ model: "gemini-2.5-flash" }),
+      tts: new TTS({ voiceId: "aria" }),
       userData: meta,
     });
 

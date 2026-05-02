@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCaseStore } from "@/stores/case-store";
+import { useVoiceStore } from "@/stores/voice-store";
 import { useCaseStream } from "@/hooks/use-case-stream";
 
 /**
@@ -10,7 +11,11 @@ import { useCaseStream } from "@/hooks/use-case-stream";
  */
 export function DashboardSSE() {
   const searchParams = useSearchParams();
-  const caseId = useCaseStore((s) => s.caseId) ?? searchParams.get("caseId");
+  const storeCaseId = useCaseStore((s) => s.caseId);
+  const voiceCaseId = useVoiceStore((s) => s.session?.caseId);
+  const paramCaseId = searchParams.get("caseId");
+
+  const caseId = storeCaseId ?? voiceCaseId ?? paramCaseId;
   useCaseStream(caseId);
   return null;
 }

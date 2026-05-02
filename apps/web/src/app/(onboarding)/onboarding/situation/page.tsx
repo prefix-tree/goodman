@@ -2,12 +2,9 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { VoiceSession } from "@/components/voice-session";
-import { useVoiceSession } from "@/hooks/use-voice-session";
-import { useUserStore } from "@/stores/user-store";
 
 const playbooks = [
   { label: "Visiting the UK", hint: "visa / travel", id: "immigration" },
@@ -26,66 +23,19 @@ export default function SituationPage() {
   const router = useRouter();
   const [freeText, setFreeText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const userId = useUserStore((s) => s.userId);
-  const { session, status, error, connect, disconnect } = useVoiceSession();
-
-  async function startVoice(playbook: string) {
-    if (!userId) return;
-    await connect({ userId, playbook });
-  }
-
-  function handleDisconnected() {
-    disconnect();
-    router.push("/dashboard");
-  }
 
   function handleHintClick(id: string) {
-    if (!userId) {
-      // No user yet — fall back to direct navigation
-      router.push(`/dashboard?playbook=${id}`);
-      return;
-    }
-    startVoice(id);
+    router.push(`/onboarding/start?playbook=${id}`);
   }
 
   function handleTextSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!freeText.trim()) return;
-    if (!userId) {
-      const params = new URLSearchParams({
-        playbook: "general",
-        context: freeText.trim(),
-      });
-      router.push(`/dashboard?${params.toString()}`);
-      return;
-    }
-    startVoice("general");
-  }
-
-  function handleVoiceStart() {
-    if (!userId) {
-      router.push("/dashboard?playbook=general");
-      return;
-    }
-    startVoice("general");
-  }
-
-  // Active voice session
-  if (session) {
-    return (
-      <div className="flex w-full max-w-lg flex-col items-center gap-6 px-6">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Tell us about your situation
-        </h1>
-        <div className="h-80 w-full">
-          <VoiceSession
-            token={session.token}
-            livekitUrl={session.livekitUrl}
-            onDisconnected={handleDisconnected}
-          />
-        </div>
-      </div>
-    );
+    const params = new URLSearchParams({
+      playbook: "general",
+      context: freeText.trim(),
+    });
+    router.push(`/onboarding/start?${params.toString()}`);
   }
 
   return (
@@ -100,24 +50,18 @@ export default function SituationPage() {
         </p>
       </div>
 
-      {error && (
-        <p className="text-destructive text-sm">{error}</p>
-      )}
-
       {/* Playbook hints */}
       <div className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-2">
         {playbooks.map((pb) => (
           <button
             key={pb.id}
             type="button"
-            disabled={status === "connecting"}
             onClick={() => handleHintClick(pb.id)}
             className={cn(
               "border-border hover:border-primary/40 hover:bg-primary/5",
               "flex flex-col items-start gap-0.5 rounded-lg border px-4 py-3",
               "text-left transition-colors focus-visible:outline-none",
               "focus-visible:ring-ring/50 focus-visible:ring-2",
-              "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
             <span className="text-foreground text-sm font-medium">
@@ -137,50 +81,27 @@ export default function SituationPage() {
         <div className="bg-border h-px flex-1" />
       </div>
 
-      {/* Free input + voice */}
-      <div className="flex w-full gap-2">
-        <form onSubmit={handleTextSubmit} className="flex flex-1 gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={freeText}
-            onChange={(e) => setFreeText(e.target.value)}
-            placeholder="I need help with..."
-            disabled={status === "connecting"}
-            className={cn(
-              "border-input bg-background placeholder:text-muted-foreground",
-              "flex h-11 w-full rounded-lg border px-4 text-sm",
-              "focus-visible:border-ring focus-visible:ring-ring/50",
-              "focus-visible:outline-none focus-visible:ring-2",
-              "disabled:opacity-50",
-            )}
-          />
-          {freeText.trim() && (
-            <Button
-              type="submit"
-              size="icon"
-              className="size-11 shrink-0"
-              disabled={status === "connecting"}
-            >
-              <ArrowRight className="size-4" />
-            </Button>
+      {/* Free input */}
+      <form onSubmit={handleTextSubmit} className="flex w-full gap-2">
+        <input
+          ref={inputRef}
+          type="text"
+          value={freeText}
+          onChange={(e) => setFreeText(e.target.value)}
+          placeholder="I need help with..."
+          className={cn(
+            "border-input bg-background placeholder:text-muted-foreground",
+            "flex h-11 w-full rounded-lg border px-4 text-sm",
+            "focus-visible:border-ring focus-visible:ring-ring/50",
+            "focus-visible:outline-none focus-visible:ring-2",
           )}
-        </form>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="size-11 shrink-0"
-          disabled={status === "connecting"}
-          onClick={handleVoiceStart}
-        >
-          {status === "connecting" ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Mic className="size-4" />
-          )}
-        </Button>
-      </div>
+        />
+        {freeText.trim() && (
+          <Button type="submit" size="icon" className="size-11 shrink-0">
+            <ArrowRight className="size-4" />
+          </Button>
+        )}
+      </form>
     </div>
   );
 }

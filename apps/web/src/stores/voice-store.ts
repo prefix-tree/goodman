@@ -4,6 +4,8 @@ interface VoiceSession {
   roomName: string;
   token: string;
   livekitUrl: string;
+  caseId: string | null;
+  mock: boolean;
 }
 
 interface VoiceState {
