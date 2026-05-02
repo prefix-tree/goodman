@@ -17,10 +17,10 @@ async function seed() {
   const userId = new ObjectId();
   const now = new Date();
 
-  await usersCollection().deleteMany({ email: "sarah@demo.solea.ai" });
+  await usersCollection().deleteMany({ email: "sarah@demo.sol.ai" });
   await usersCollection().insertOne({
     _id: userId,
-    email: "sarah@demo.solea.ai",
+    email: "sarah@demo.sol.ai",
     name: "Sarah",
     createdAt: now,
     updatedAt: now,

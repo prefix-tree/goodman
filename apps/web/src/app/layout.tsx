@@ -6,7 +6,7 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Solea Legal",
+  title: "SOL",
   description: "AI-powered legal case builder",
 };
 

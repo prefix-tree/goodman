@@ -17,7 +17,7 @@ export const sessions = new Hono()
     });
     if (!user) return c.json({ error: "User not found" }, 404);
 
-    const roomName = `solea-${body.userId.slice(-6)}-${Date.now()}`;
+    const roomName = `sol-${body.userId.slice(-6)}-${Date.now()}`;
 
     const metadata = JSON.stringify({
       userId: body.userId,

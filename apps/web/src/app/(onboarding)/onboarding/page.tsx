@@ -25,7 +25,7 @@ export default function OnboardingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: `guest-${Date.now()}@solea.ai`,
+          email: `guest-${Date.now()}@sol.ai`,
           name: "Guest",
         }),
       })

@@ -108,7 +108,10 @@ export function ChatPanel() {
                 </div>
               </div>
             ))}
-            {currentQuestion && (
+            {/* Show next question hint only if it's not already in the transcript */}
+            {currentQuestion &&
+              transcript.length > 0 &&
+              transcript[transcript.length - 1].text !== currentQuestion.question && (
               <div className="flex justify-start">
                 <div className="bg-primary/10 text-primary max-w-[80%] rounded-lg border border-dashed px-3 py-2 text-sm">
                   Next: {currentQuestion.question}

@@ -6,7 +6,7 @@ import {
   ServerOptions,
 } from "@livekit/agents";
 import { LLM } from "@livekit/agents-plugin-google";
-import { TTS } from "@livekit/agents-plugin-elevenlabs";
+import { STT, TTS } from "@livekit/agents-plugin-elevenlabs";
 import * as silero from "@livekit/agents-plugin-silero";
 import { voice } from "@livekit/agents";
 import { fileURLToPath } from "node:url";
@@ -40,7 +40,7 @@ export default defineAgent({
     meta.caseId = caseId;
 
     const instructions = [
-      `You are Sofia, a legal intake assistant for Solea, handling ${playbook.label} matters.`,
+      `You are Sofia, a legal intake assistant for SOL, handling ${playbook.label} matters.`,
       `The caller's name is ${meta.userName ?? "there"}. Address them by name.`,
       "Be concise, empathetic, and conversational. Keep responses to one or two sentences.",
       "",
@@ -65,8 +65,9 @@ export default defineAgent({
 
     const session = new voice.AgentSession<SessionUserData>({
       vad: ctx.proc.userData.vad as silero.VAD,
+      stt: new STT(),
       llm: new LLM({ model: "gemini-2.5-flash" }),
-      tts: new TTS({ voiceId: "aria" }),
+      tts: new TTS({ voiceId: "9BWtsMINqrJLrRacOk9x" }),
       userData: meta,
     });
 
@@ -86,8 +87,8 @@ export default defineAgent({
     });
 
     const greeting = meta.userName
-      ? `Hello ${meta.userName}! Thank you for calling Solea. I'm Sofia, and I'll be helping you today.`
-      : "Hello! Thank you for calling Solea. I'm Sofia, and I'll be helping you today.";
+      ? `Hello ${meta.userName}! Thank you for calling SOL. I'm Sofia, and I'll be helping you today.`
+      : "Hello! Thank you for calling SOL. I'm Sofia, and I'll be helping you today.";
     session.say(greeting);
   },
 });

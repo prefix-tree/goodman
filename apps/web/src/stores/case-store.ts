@@ -103,11 +103,19 @@ export const useCaseStore = create<CaseState>((set) => ({
       requirements: state.requirements,
       completion: state.completion,
       summary: state.summary,
+      transcript: [], // reset transcript — SSE will send history next
       status: "active",
     }),
 
   addTranscript: (entry) =>
-    set((s) => ({ transcript: [...s.transcript, entry] })),
+    set((s) => {
+      // Deduplicate: skip if the last entry has the same text and speaker
+      const last = s.transcript[s.transcript.length - 1];
+      if (last && last.text === entry.text && last.speaker === entry.speaker) {
+        return s;
+      }
+      return { transcript: [...s.transcript, entry] };
+    }),
 
   updateCase: (update) =>
     set({
