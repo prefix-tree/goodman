@@ -15,7 +15,7 @@ export function DashboardSSE() {
   const voiceCaseId = useVoiceStore((s) => s.session?.caseId);
   const paramCaseId = searchParams.get("caseId");
 
-  const caseId = storeCaseId ?? voiceCaseId ?? paramCaseId;
+  const caseId = paramCaseId ?? storeCaseId ?? voiceCaseId ?? null;
   useCaseStream(caseId);
   return null;
 }
