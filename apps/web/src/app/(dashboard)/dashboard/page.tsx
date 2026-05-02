@@ -1,15 +1,22 @@
+"use client";
+
+import { Suspense } from "react";
 import { ChatPanel } from "@/components/chat-panel";
 import { ProfilePanel } from "@/components/profile-panel";
+import { DashboardSSE } from "./dashboard-sse";
 
 export default function DashboardPage() {
   return (
-    <div className="flex h-screen">
-      <main className="w-1/2 border-r">
-        <ChatPanel />
-      </main>
-      <aside className="w-1/2">
-        <ProfilePanel />
-      </aside>
-    </div>
+    <Suspense>
+      <DashboardSSE />
+      <div className="flex h-screen">
+        <main className="w-1/2 border-r">
+          <ChatPanel />
+        </main>
+        <aside className="w-1/2">
+          <ProfilePanel />
+        </aside>
+      </div>
+    </Suspense>
   );
 }

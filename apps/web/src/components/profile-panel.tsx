@@ -1,24 +1,25 @@
 "use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PillTabs, PillTabsList, PillTabsTrigger, PillTabsContent } from "@/components/atoms/pill-tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ProfileCases } from "@/components/profile/cases";
+import { CaseDetail } from "@/components/profile/case-detail";
 import { Badge } from "@/components/ui/badge";
-import { User, Inbox, FolderKanban } from "lucide-react";
+import { User, FolderKanban } from "lucide-react";
 
 export function ProfilePanel() {
   return (
     <div className="flex h-full flex-col">
-      <Tabs defaultValue="home" className="flex h-full flex-col gap-0">
-        <div className="border-b px-4 py-2">
-          <TabsList>
-            <TabsTrigger value="home">Home</TabsTrigger>
-            <TabsTrigger value="cases">Cases</TabsTrigger>
-            <TabsTrigger value="inbox">Inbox</TabsTrigger>
-          </TabsList>
+      <PillTabs defaultValue="home" className="flex h-full flex-col gap-0">
+        <div className="px-4 py-3">
+          <PillTabsList>
+            <PillTabsTrigger value="home">Home</PillTabsTrigger>
+            <PillTabsTrigger value="cases">Cases</PillTabsTrigger>
+            <PillTabsTrigger value="details">Details</PillTabsTrigger>
+          </PillTabsList>
         </div>
 
-        <TabsContent value="home" className="flex-1 overflow-auto p-4">
+        <PillTabsContent value="home" className="overflow-auto p-4">
           <div className="flex flex-col gap-4">
             <Card>
               <CardHeader>
@@ -54,40 +55,25 @@ export function ProfilePanel() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </PillTabsContent>
 
-        <TabsContent value="cases" className="flex-1 overflow-auto p-4">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FolderKanban className="size-4" />
-                Your Cases
-              </CardTitle>
-              <CardDescription>Track the status of your legal matters</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ProfileCases />
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <PillTabsContent value="cases" className="overflow-auto p-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 px-1">
+              <FolderKanban className="size-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Your Cases</p>
+                <p className="text-xs text-muted-foreground">Track the status of your legal matters</p>
+              </div>
+            </div>
+            <ProfileCases />
+          </div>
+        </PillTabsContent>
 
-        <TabsContent value="inbox" className="flex-1 overflow-auto p-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Inbox className="size-4" />
-                Inbox
-              </CardTitle>
-              <CardDescription>Messages and notifications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                No messages yet.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        <PillTabsContent value="details" className="overflow-auto p-4">
+          <CaseDetail />
+        </PillTabsContent>
+      </PillTabs>
     </div>
   );
 }

@@ -1,16 +1,18 @@
 import { ObjectId, type Collection } from "mongodb";
 import { getDb } from "../db.js";
 
-// --- Embedded types ---
+// --- Checklist ---
 
-export interface CaseFact {
-  key: string;
-  value: string;
-  source: "transcript" | "document" | "manual";
-  sourceRef?: string;
-  confidence: "high" | "medium" | "low";
-  extractedAt: Date;
+export interface ChecklistTask {
+  id: string;
+  topic: string;
+  whatToCollect: string[];
+  guidance: string;
+  status: "pending" | "completed" | "partial";
+  priority: "high" | "normal" | "low";
 }
+
+// --- Embedded types ---
 
 export interface CaseRisk {
   id: string;
@@ -36,7 +38,8 @@ export interface Case {
   title: string;
   status: "open" | "in_progress" | "closed";
   playbook: string;
-  facts: CaseFact[];
+  facts: Record<string, unknown>;
+  checklist: ChecklistTask[];
   risks: CaseRisk[];
   requirements: CaseRequirement[];
   completion: number;

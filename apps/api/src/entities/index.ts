@@ -5,7 +5,7 @@ export {
 
 export {
   type Case,
-  type CaseFact,
+  type ChecklistTask,
   type CaseRisk,
   type CaseRequirement,
   casesCollection,

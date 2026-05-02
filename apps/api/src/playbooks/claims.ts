@@ -73,19 +73,19 @@ export const claims: PlaybookDefinition = {
       id: "high_value_claim",
       label: "Claim may exceed small claims limit (£10,000)",
       severity: "high",
-      condition: (facts) =>
-        facts.some(
-          (f) =>
-            f.key === "claim_amount" &&
-            Number(f.value.replace(/[^0-9.]/g, "")) > 10000,
-        ),
+      condition: (facts) => {
+        const v = facts.claim_amount;
+        return (
+          typeof v === "string" &&
+          Number(v.replace(/[^0-9.]/g, "")) > 10000
+        );
+      },
     },
     {
       id: "no_evidence",
       label: "Limited evidence may weaken the claim",
       severity: "medium",
-      condition: (facts) =>
-        !facts.some((f) => f.key === "evidence_available"),
+      condition: (facts) => !("evidence_available" in facts),
     },
   ],
 

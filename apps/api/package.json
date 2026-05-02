@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "start:agent": "node dist/agent/index.js start",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx src/seed/demo.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.3",

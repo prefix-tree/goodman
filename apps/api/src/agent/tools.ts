@@ -1,121 +1,288 @@
 import { llm } from "@livekit/agents";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
-import { casesCollection, notesCollection } from "../entities/index.js";
+import { caseStateService } from "../case/state.js";
+import { casesCollection } from "../entities/index.js";
+import { getPlaybook } from "../playbooks/index.js";
+import { getNextQuestion } from "../extraction/question.js";
 import type { SessionUserData } from "./types.js";
 
-// --- Real tools backed by MongoDB ---
+// ─── TOOL 1: start_intake ───────────────────────────────────
 
-export const createCase = llm.tool({
-  description: "Create a new legal case for the user after understanding their situation.",
-  parameters: z.object({
-    title: z.string().describe("Short title summarizing the case"),
-    summary: z.string().describe("Brief summary of the situation as described by the user"),
-  }),
-  execute: async ({ title, summary }, opts) => {
-    const { userId, playbook } = opts.ctx.userData as SessionUserData;
-    const now = new Date();
-    const result = await casesCollection().insertOne({
-      _id: new ObjectId(),
-      userId: new ObjectId(userId),
-      title,
-      status: "open",
-      playbook: playbook ?? "general",
-      facts: [],
-      risks: [],
-      requirements: [],
-      completion: 0,
-      summary: null,
-      createdAt: now,
-      updatedAt: now,
-    });
-    await notesCollection().insertOne({
-      _id: new ObjectId(),
-      caseId: result.insertedId,
-      userId: new ObjectId(userId),
-      content: summary,
-      createdAt: now,
-      updatedAt: now,
-    });
-    return { caseId: result.insertedId.toHexString(), title, status: "open" };
-  },
-});
-
-export const addNote = llm.tool({
-  description: "Add a note or update to an existing case during the conversation.",
-  parameters: z.object({
-    caseId: z.string().describe("The ID of the case to add the note to"),
-    content: z.string().describe("The content of the note"),
-  }),
-  execute: async ({ caseId, content }, opts) => {
-    const { userId } = opts.ctx.userData as SessionUserData;
-    const now = new Date();
-    await notesCollection().insertOne({
-      _id: new ObjectId(),
-      caseId: new ObjectId(caseId),
-      userId: new ObjectId(userId),
-      content,
-      createdAt: now,
-      updatedAt: now,
-    });
-    return { status: "saved", caseId };
-  },
-});
-
-export const listCases = llm.tool({
-  description: "List all existing cases for the current user.",
+export const startIntake = llm.tool({
+  description:
+    "Initialize intake checklist for the current session. Call ONCE at the very beginning of intake, after greeting, before asking structured questions. Returns the plan to follow during the conversation. NEVER call again in the same session.",
   parameters: z.object({}),
   execute: async (_args, opts) => {
-    const { userId } = opts.ctx.userData as SessionUserData;
-    const docs = await casesCollection()
-      .find({ userId: new ObjectId(userId) })
-      .sort({ updatedAt: -1 })
-      .limit(10)
-      .toArray();
-    return docs.map((c) => ({
-      id: c._id.toHexString(),
-      title: c.title,
-      status: c.status,
-      updatedAt: c.updatedAt.toISOString(),
+    const userData = opts.ctx.userData as SessionUserData;
+    const { userId, playbook } = userData;
+    let caseId = userData.caseId;
+
+    // Create case if none exists
+    if (!caseId) {
+      const caseDoc = await caseStateService.createCase(userId, playbook);
+      caseId = caseDoc._id.toHexString();
+      userData.caseId = caseId;
+    }
+
+    const caseDoc = await caseStateService.getState(caseId);
+    if (!caseDoc) {
+      return { error: "Case not found" };
+    }
+
+    const completed = caseDoc.checklist.filter(
+      (t) => t.status === "completed",
+    ).length;
+    const firstPending =
+      caseDoc.checklist.find(
+        (t) => t.status === "pending" && t.priority === "high",
+      ) ??
+      caseDoc.checklist.find(
+        (t) => t.status === "pending" && t.priority === "normal",
+      );
+
+    const knownKeys = Object.keys(caseDoc.facts);
+
+    return {
+      checklist: caseDoc.checklist,
+      summary:
+        knownKeys.length > 0
+          ? `Some data already collected: ${knownKeys.join(", ")}`
+          : "No data collected yet — starting fresh.",
+      total_tasks: caseDoc.checklist.length,
+      completed_tasks: completed,
+      first_topic_suggestion: firstPending
+        ? `Start with: ${firstPending.topic}`
+        : "All tasks completed.",
+    };
+  },
+});
+
+// ─── TOOL 2: note ───────────────────────────────────────────
+
+export const note = llm.tool({
+  description:
+    "Record facts the client shared. Call IMMEDIATELY after client shares any factual information. Education, work, family, immigration history, dates, names, amounts, locations, intentions. Multiple facts in one client message → ONE note call with all of them. Optionally mark a checklist task as covered.",
+  parameters: z.object({
+    facts: z
+      .record(z.string(), z.unknown())
+      .describe(
+        "Structured object of facts. Keys should match playbook fact keys where possible, e.g. { nationality: 'Indian', visa_type: 'work' }",
+      ),
+    completes_task_id: z
+      .string()
+      .optional()
+      .describe("Checklist task ID that these facts complete"),
+    evidence: z
+      .string()
+      .optional()
+      .describe("Direct quote from client message"),
+  }),
+  execute: async ({ facts, completes_task_id }, opts) => {
+    const userData = opts.ctx.userData as SessionUserData;
+    const caseId = userData.caseId;
+    if (!caseId) {
+      return {
+        accepted: false,
+        error: "No active case. Call start_intake first.",
+      };
+    }
+
+    // Snapshot existing facts for conflict detection
+    const before = await caseStateService.getState(caseId);
+    if (!before) {
+      return { accepted: false, error: "Case not found." };
+    }
+
+    const conflicts: {
+      field: string;
+      old: unknown;
+      new_value: unknown;
+      needs_clarification: boolean;
+    }[] = [];
+    for (const [key, value] of Object.entries(facts)) {
+      const existing = before.facts[key];
+      if (
+        existing !== undefined &&
+        JSON.stringify(existing) !== JSON.stringify(value)
+      ) {
+        conflicts.push({
+          field: key,
+          old: existing,
+          new_value: value,
+          needs_clarification: true,
+        });
+      }
+    }
+
+    // Process through CaseStateService (merge + recompute derived state)
+    const result = await caseStateService.processAndUpdate(caseId, facts);
+    if (!result) {
+      return { accepted: false, error: "Failed to update case." };
+    }
+
+    // Handle explicit task completion signal from agent
+    if (completes_task_id) {
+      const task = result.checklist.find((t) => t.id === completes_task_id);
+      if (task && task.status !== "completed") {
+        task.status = "completed";
+        await casesCollection().updateOne(
+          { _id: new ObjectId(caseId) },
+          { $set: { checklist: result.checklist, updatedAt: new Date() } },
+        );
+      }
+    }
+
+    // Build applied changes
+    const appliedChanges = Object.keys(facts).map((key) => ({
+      path: key,
+      action: key in before.facts ? "updated" : "added",
     }));
+
+    // Find next pending task
+    const nextPending =
+      result.checklist.find(
+        (t) => t.status === "pending" && t.priority === "high",
+      ) ??
+      result.checklist.find(
+        (t) => t.status === "pending" && t.priority === "normal",
+      );
+
+    const completedCount = result.checklist.filter(
+      (t) => t.status === "completed",
+    ).length;
+    const completeness =
+      result.checklist.length > 0
+        ? Math.round((completedCount / result.checklist.length) * 100) / 100
+        : 1;
+
+    // Task status update
+    let taskStatusUpdate = null;
+    if (completes_task_id) {
+      const task = result.checklist.find((t) => t.id === completes_task_id);
+      taskStatusUpdate = task
+        ? { task_id: completes_task_id, new_status: task.status }
+        : null;
+    }
+
+    // Build suggestion
+    let suggestion: string;
+    if (conflicts.length > 0) {
+      suggestion = "Clarify conflict first.";
+    } else if (result.nextQuestion) {
+      suggestion = `Move to topic: ${result.nextQuestion.key}`;
+    } else if (nextPending) {
+      suggestion = `Move to topic: ${nextPending.topic}`;
+    } else {
+      suggestion = "All tasks completed — wrap up intake.";
+    }
+
+    return {
+      accepted: true,
+      applied_changes: appliedChanges,
+      task_status_update: taskStatusUpdate,
+      conflicts,
+      completeness_now: completeness,
+      next_pending_task: nextPending
+        ? `${nextPending.id} (${nextPending.topic})`
+        : null,
+      suggestion,
+    };
   },
 });
 
-// --- Stub tools (replace with real integrations) ---
+// ─── TOOL 3: orient ─────────────────────────────────────────
 
-export const lookupContact = llm.tool({
-  description: "Look up a contact by name and return their information.",
-  parameters: z.object({
-    name: z.string().describe("The name of the contact to look up"),
-  }),
-  execute: async ({ name }) => {
-    // TODO: replace with real DB/CRM lookup
-    return { name, phone: "+1-555-0100", email: `${name.toLowerCase()}@example.com` };
-  },
-});
+export const orient = llm.tool({
+  description:
+    "Get current conversation state when uncertain. Use when the client says something unexpected, you're unsure which topic to address next, multiple turns spent without progress, or you need context to respond. NOT for routine use after every note call.",
+  parameters: z.object({}),
+  execute: async (_args, opts) => {
+    const userData = opts.ctx.userData as SessionUserData;
+    const caseId = userData.caseId;
+    if (!caseId) {
+      return {
+        current_phase: "pre-intake",
+        suggested_action: "Call start_intake to begin.",
+      };
+    }
 
-export const scheduleCallback = llm.tool({
-  description: "Schedule a callback for a customer at a specific time.",
-  parameters: z.object({
-    phoneNumber: z.string().describe("The phone number to call back"),
-    scheduledTime: z.string().describe("ISO 8601 datetime for the callback"),
-    reason: z.string().describe("Brief reason for the callback"),
-  }),
-  execute: async ({ phoneNumber, scheduledTime, reason }) => {
-    // TODO: persist to database
-    return { status: "scheduled", phoneNumber, scheduledTime, reason };
-  },
-});
+    const caseDoc = await caseStateService.getState(caseId);
+    if (!caseDoc) {
+      return { error: "Case not found." };
+    }
 
-export const transferCall = llm.tool({
-  description: "Transfer the current call to a human agent or department.",
-  parameters: z.object({
-    department: z
-      .enum(["sales", "support", "billing"])
-      .describe("The department to transfer to"),
-  }),
-  execute: async ({ department }) => {
-    // TODO: integrate with telephony provider
-    return { status: "transferring", department };
+    const playbook = getPlaybook(caseDoc.playbook);
+    const checklist = caseDoc.checklist;
+
+    const completed = checklist.filter(
+      (t) => t.status === "completed",
+    ).length;
+    const partial = checklist.filter((t) => t.status === "partial").length;
+    const pending = checklist.filter((t) => t.status === "pending").length;
+
+    const currentFocus =
+      checklist.find((t) => t.status === "partial") ??
+      checklist.find(
+        (t) => t.status === "pending" && t.priority === "high",
+      ) ??
+      checklist.find((t) => t.status === "pending");
+
+    // Build case summary from facts
+    const factEntries = Object.entries(caseDoc.facts);
+    const caseSummary =
+      factEntries.length > 0
+        ? factEntries
+            .map(
+              ([k, v]) =>
+                `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`,
+            )
+            .join("; ")
+        : "No facts recorded yet.";
+
+    // Build concerns
+    const concerns: string[] = [];
+    const highPending = checklist.filter(
+      (t) => t.status === "pending" && t.priority === "high",
+    );
+    if (highPending.length > 0 && completed > 0) {
+      concerns.push(
+        `${highPending.length} high-priority tasks still pending: ${highPending.map((t) => t.topic).join(", ")}`,
+      );
+    }
+    for (const risk of caseDoc.risks) {
+      concerns.push(`${risk.severity} risk: ${risk.label}`);
+    }
+
+    // Suggested action using playbook question engine
+    const nextQ = getNextQuestion(caseDoc.facts, playbook);
+    let suggestedAction: string;
+    if (completed === checklist.length && checklist.length > 0) {
+      suggestedAction =
+        "All intake tasks completed. Summarize findings and wrap up.";
+    } else if (nextQ) {
+      suggestedAction = `Ask about: ${nextQ.question}`;
+    } else if (currentFocus) {
+      suggestedAction = `Continue with: ${currentFocus.topic}. ${currentFocus.guidance}`;
+    } else {
+      suggestedAction =
+        "Review collected facts and proceed to remaining tasks.";
+    }
+
+    return {
+      current_phase: "intake",
+      checklist_summary: {
+        total: checklist.length,
+        completed,
+        in_progress: partial,
+        pending,
+        current_focus: currentFocus
+          ? `${currentFocus.id} (${currentFocus.topic})`
+          : null,
+      },
+      case_summary: caseSummary,
+      suggested_action: suggestedAction,
+      concerns,
+    };
   },
 });

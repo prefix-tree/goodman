@@ -71,25 +71,25 @@ export const fines: PlaybookDefinition = {
       id: "deadline_risk",
       label: "Response deadline may be approaching",
       severity: "high",
-      condition: (facts) =>
-        facts.some(
-          (f) =>
-            f.key === "already_responded" &&
-            ["no", "not yet", "haven't responded"].includes(
-              f.value.toLowerCase(),
-            ),
-        ),
+      condition: (facts) => {
+        const v = facts.already_responded;
+        return (
+          typeof v === "string" &&
+          ["no", "not yet", "haven't responded"].includes(v.toLowerCase())
+        );
+      },
     },
     {
       id: "escalation_risk",
       label: "Fine may escalate if not addressed",
       severity: "medium",
-      condition: (facts) =>
-        facts.some(
-          (f) =>
-            f.key === "fine_amount" &&
-            Number(f.value.replace(/[^0-9.]/g, "")) > 500,
-        ),
+      condition: (facts) => {
+        const v = facts.fine_amount;
+        return (
+          typeof v === "string" &&
+          Number(v.replace(/[^0-9.]/g, "")) > 500
+        );
+      },
     },
   ],
 

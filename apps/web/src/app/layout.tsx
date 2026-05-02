@@ -6,8 +6,8 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "App",
-  description: "Voice agent and automation app",
+  title: "Solea Legal",
+  description: "AI-powered legal case builder",
 };
 
 export default function RootLayout({

@@ -1,5 +1,3 @@
-import type { CaseFact } from "../entities/case.js";
-
 export interface PlaybookFact {
   key: string;
   label: string;
@@ -12,7 +10,7 @@ export interface RiskRule {
   id: string;
   label: string;
   severity: "high" | "medium" | "low";
-  condition: (facts: CaseFact[]) => boolean;
+  condition: (facts: Record<string, unknown>) => boolean;
 }
 
 export interface DocumentRequirement {

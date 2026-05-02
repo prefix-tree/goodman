@@ -106,32 +106,33 @@ export const immigration: PlaybookDefinition = {
       id: "previous_refusal",
       label: "Previous visa refusal detected",
       severity: "high",
-      condition: (facts) =>
-        facts.some(
-          (f) =>
-            f.key === "previous_refusal" &&
-            !["no", "none", "never"].includes(f.value.toLowerCase()),
-        ),
+      condition: (facts) => {
+        const v = facts.previous_refusal;
+        return (
+          typeof v === "string" &&
+          !["no", "none", "never"].includes(v.toLowerCase())
+        );
+      },
     },
     {
       id: "no_employment",
       label: "No clear employment or financial support",
       severity: "medium",
-      condition: (facts) =>
-        !facts.some((f) => f.key === "financial_situation"),
+      condition: (facts) => !("financial_situation" in facts),
     },
     {
       id: "missing_financials",
       label: "Additional financial documentation likely required",
       severity: "medium",
-      condition: (facts) =>
-        facts.some(
-          (f) =>
-            f.key === "financial_situation" &&
-            ["self-employed", "unemployed", "sponsor", "retired"].includes(
-              f.value.toLowerCase(),
-            ),
-        ),
+      condition: (facts) => {
+        const v = facts.financial_situation;
+        return (
+          typeof v === "string" &&
+          ["self-employed", "unemployed", "sponsor", "retired"].includes(
+            v.toLowerCase(),
+          )
+        );
+      },
     },
   ],
 
