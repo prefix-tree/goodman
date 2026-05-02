@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
+import { Geist } from "next/font/google";
 import "./globals.css";
 
-import { ThemeProvider } from "@/components/theme-provider";
-import { SidebarConfigProvider } from "@/contexts/sidebar-context";
-import { inter } from "@/lib/fonts";
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Shadcn Dashboard",
-  description: "A dashboard built with Next.js and shadcn/ui",
+  title: "App",
+  description: "Voice agent and automation app",
 };
 
 export default function RootLayout({
@@ -16,14 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} antialiased`}>
-      <body className={inter.className}>
-        <ThemeProvider defaultTheme="system" storageKey="nextjs-ui-theme">
-          <SidebarConfigProvider>
-            {children}
-          </SidebarConfigProvider>
-        </ThemeProvider>
-      </body>
+    <html lang="en" className={geist.variable}>
+      <body>{children}</body>
     </html>
   );
 }
