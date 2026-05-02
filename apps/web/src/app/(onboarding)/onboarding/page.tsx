@@ -8,8 +8,7 @@ export default function OnboardingPage() {
   const router = useRouter()
 
   function handleStart() {
-    // TODO: open LiveKit voice input
-    router.push("/dashboard")
+    router.push("/onboarding/situation")
   }
 
   return (
