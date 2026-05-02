@@ -14,6 +14,7 @@ export const startIntake = llm.tool({
     "Initialize intake checklist for the current session. Call ONCE at the very beginning of intake, after greeting, before asking structured questions. Returns the plan to follow during the conversation. NEVER call again in the same session.",
   parameters: z.object({}),
   execute: async (_args, opts) => {
+    console.log("[tool:start_intake] called");
     const userData = opts.ctx.userData as SessionUserData;
     const { userId, playbook } = userData;
     let caseId = userData.caseId;
@@ -43,7 +44,7 @@ export const startIntake = llm.tool({
 
     const knownKeys = Object.keys(caseDoc.facts);
 
-    return {
+    const result = {
       checklist: caseDoc.checklist,
       summary:
         knownKeys.length > 0
@@ -55,6 +56,8 @@ export const startIntake = llm.tool({
         ? `Start with: ${firstPending.topic}`
         : "All tasks completed.",
     };
+    console.log("[tool:start_intake] result:", JSON.stringify(result, null, 2));
+    return result;
   },
 });
 
@@ -79,9 +82,11 @@ export const note = llm.tool({
       .describe("Direct quote from client message"),
   }),
   execute: async ({ facts, completes_task_id }, opts) => {
+    console.log("[tool:note] called with:", JSON.stringify({ facts, completes_task_id }));
     const userData = opts.ctx.userData as SessionUserData;
     const caseId = userData.caseId;
     if (!caseId) {
+      console.log("[tool:note] error: no active case");
       return {
         accepted: false,
         error: "No active case. Call start_intake first.",
@@ -177,7 +182,7 @@ export const note = llm.tool({
       suggestion = "All tasks completed — wrap up intake.";
     }
 
-    return {
+    const noteResult = {
       accepted: true,
       applied_changes: appliedChanges,
       task_status_update: taskStatusUpdate,
@@ -188,6 +193,8 @@ export const note = llm.tool({
         : null,
       suggestion,
     };
+    console.log("[tool:note] result:", JSON.stringify(noteResult, null, 2));
+    return noteResult;
   },
 });
 
@@ -198,9 +205,11 @@ export const orient = llm.tool({
     "Get current conversation state when uncertain. Use when the client says something unexpected, you're unsure which topic to address next, multiple turns spent without progress, or you need context to respond. NOT for routine use after every note call.",
   parameters: z.object({}),
   execute: async (_args, opts) => {
+    console.log("[tool:orient] called");
     const userData = opts.ctx.userData as SessionUserData;
     const caseId = userData.caseId;
     if (!caseId) {
+      console.log("[tool:orient] no active case — pre-intake");
       return {
         current_phase: "pre-intake",
         suggested_action: "Call start_intake to begin.",
@@ -269,7 +278,7 @@ export const orient = llm.tool({
         "Review collected facts and proceed to remaining tasks.";
     }
 
-    return {
+    const orientResult = {
       current_phase: "intake",
       checklist_summary: {
         total: checklist.length,
@@ -284,5 +293,7 @@ export const orient = llm.tool({
       suggested_action: suggestedAction,
       concerns,
     };
+    console.log("[tool:orient] result:", JSON.stringify(orientResult, null, 2));
+    return orientResult;
   },
 });

@@ -3,7 +3,6 @@ import { useVoiceStore } from "@/stores/voice-store";
 
 interface ConnectResult {
   caseId: string | null;
-  mock: boolean;
 }
 
 export function useVoiceSession() {
@@ -16,29 +15,20 @@ export function useVoiceSession() {
       userId: string;
       playbook?: string;
       caseId?: string;
-      mock?: boolean;
     }): Promise<ConnectResult | null> => {
       setStatus("connecting");
       setError(null);
       try {
-        const useMock = opts.mock !== false; // default to mock
-        const endpoint = useMock ? "/api/sessions-mock" : "/api/sessions";
-
-        const res = await fetch(endpoint, {
+        const res = await fetch("/api/sessions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: opts.userId,
-            playbook: opts.playbook,
-            caseId: opts.caseId,
-          }),
+          body: JSON.stringify(opts),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error ?? "Failed to create session");
         }
         const data = await res.json();
-        const mock = data.mock ?? useMock;
         const caseId = data.caseId ?? null;
 
         setSession({
@@ -46,14 +36,9 @@ export function useVoiceSession() {
           token: data.token,
           livekitUrl: data.livekitUrl,
           caseId,
-          mock,
         });
 
-        if (mock) {
-          setStatus("connected");
-        }
-
-        return { caseId, mock };
+        return { caseId };
       } catch (e) {
         setError(e instanceof Error ? e.message : "Unknown error");
         setStatus("idle");

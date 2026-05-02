@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mic, MessageSquare, Loader2 } from "lucide-react";
 import { useUserStore } from "@/stores/user-store";
@@ -14,36 +13,22 @@ export default function StartPage() {
 
   const userId = useUserStore((s) => s.userId);
   const { session, status, error, connect, disconnect } = useVoiceSession();
-  const [chatLoading, setChatLoading] = useState(false);
 
   // --- Start voice (real LiveKit) ---
   async function handleVoice() {
     if (!userId) return;
-    const result = await connect({ userId, playbook, mock: false });
-    // If backend fell back to mock (no LiveKit keys), redirect to dashboard
-    if (result?.mock && result.caseId) {
-      router.push(`/dashboard?caseId=${result.caseId}`);
-    }
+    await connect({ userId, playbook });
   }
 
-  // --- Go to chat (mock agent) ---
+  // --- Go to chat ---
   async function handleChat() {
     if (!userId) {
       router.push(`/dashboard?playbook=${playbook}`);
       return;
     }
-    setChatLoading(true);
-    try {
-      const res = await fetch("/api/sessions-mock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, playbook }),
-      });
-      if (!res.ok) throw new Error("Failed to create session");
-      const data = await res.json();
-      router.push(`/dashboard?caseId=${data.caseId}`);
-    } catch {
-      setChatLoading(false);
+    const result = await connect({ userId, playbook });
+    if (result?.caseId) {
+      router.push(`/dashboard?caseId=${result.caseId}`);
     }
   }
 
@@ -52,10 +37,10 @@ export default function StartPage() {
     router.push("/dashboard");
   }
 
-  const isLoading = status === "connecting" || chatLoading;
+  const isLoading = status === "connecting";
 
-  // Active voice session (real LiveKit only)
-  if (session && !session.mock) {
+  // Active voice session
+  if (session) {
     return (
       <div className="flex w-full max-w-lg flex-col items-center gap-6 px-6">
         <h1 className="text-xl font-semibold tracking-tight">
@@ -116,7 +101,7 @@ export default function StartPage() {
           className="border-border hover:border-primary/40 hover:bg-primary/5 flex items-center gap-4 rounded-xl border p-5 text-left transition-colors disabled:pointer-events-none disabled:opacity-50"
         >
           <div className="bg-primary/10 flex size-12 shrink-0 items-center justify-center rounded-full">
-            {chatLoading ? (
+            {status === "connecting" ? (
               <Loader2 className="text-primary size-6 animate-spin" />
             ) : (
               <MessageSquare className="text-primary size-6" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Mic, Loader2, Send } from "lucide-react";
+import { Mic, MicOff, Loader2, Send } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,11 +21,11 @@ export function ChatPanel() {
   const currentQuestion = useCaseStore((s) => s.currentQuestion);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [voiceConnected, setVoiceConnected] = useState(false);
 
   const playbook = searchParams.get("playbook") ?? undefined;
   const caseId = searchParams.get("caseId") ?? undefined;
 
-  const isMock = session?.mock === true;
   const isActive = !!session || !!caseId;
 
   // Auto-scroll transcript
@@ -40,45 +40,44 @@ export function ChatPanel() {
     await connect({ userId, playbook, caseId });
   }
 
-  // Active session view (mock or real)
+  function handleVoiceToggle() {
+    if (voiceConnected) {
+      setVoiceConnected(false);
+      disconnect();
+    } else if (session) {
+      // Session exists, just connect to the room
+      setVoiceConnected(true);
+    } else {
+      // No session yet — create one and connect
+      handleStart().then(() => setVoiceConnected(true));
+    }
+  }
+
+  // Active session view
   if (isActive) {
     return (
       <div className="flex h-full flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="text-sm font-semibold">Your Case</h2>
-          <div className="flex items-center gap-2">
-            {isMock && (
-              <Badge variant="outline" className="text-xs">
-                Mock
-              </Badge>
-            )}
-            {completion > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {completion}%
-              </Badge>
-            )}
-          </div>
+          {completion > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {completion}%
+            </Badge>
+          )}
         </div>
 
-        {/* Voice visualizer — only for real sessions */}
-        {session && !isMock && (
-          <div className="h-48 shrink-0 border-b">
+        {/* Voice visualizer — only when user has connected */}
+        {session && voiceConnected && (
+          <div className="h-36 shrink-0 border-b">
             <VoiceSession
               token={session.token}
               livekitUrl={session.livekitUrl}
-              onDisconnected={disconnect}
+              onDisconnected={() => {
+                setVoiceConnected(false);
+                disconnect();
+              }}
             />
-          </div>
-        )}
-
-        {/* Mock status bar */}
-        {isMock && (
-          <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2">
-            <div className="size-2 animate-pulse rounded-full bg-green-500" />
-            <span className="text-muted-foreground text-xs">
-              Simulating agent conversation...
-            </span>
           </div>
         )}
 
@@ -87,9 +86,9 @@ export function ChatPanel() {
           <div className="space-y-3 p-4">
             {transcript.length === 0 && (
               <p className="text-muted-foreground text-center text-sm">
-                {isMock
-                  ? "Mock agent starting..."
-                  : "Start speaking — your conversation will appear here."}
+                {voiceConnected
+                  ? "Start speaking — your conversation will appear here."
+                  : "Click the mic button below to start a voice session."}
               </p>
             )}
             {transcript.map((entry, i) => (
@@ -108,7 +107,6 @@ export function ChatPanel() {
                 </div>
               </div>
             ))}
-            {/* Show next question hint only if it's not already in the transcript */}
             {currentQuestion &&
               transcript.length > 0 &&
               transcript[transcript.length - 1].text !== currentQuestion.question && (
@@ -122,7 +120,11 @@ export function ChatPanel() {
         </ScrollArea>
 
         {/* Input */}
-        <ChatInput />
+        <ChatInput
+          voiceConnected={voiceConnected}
+          isConnecting={status === "connecting"}
+          onVoiceToggle={handleVoiceToggle}
+        />
       </div>
     );
   }
@@ -142,35 +144,33 @@ export function ChatPanel() {
             Complete onboarding to start a voice session.
           </p>
         ) : (
-          <>
-            <p className="text-muted-foreground text-center text-sm">
-              Start a voice session to describe your situation.
-            </p>
-            <Button
-              onClick={handleStart}
-              disabled={status === "connecting"}
-              className="gap-2"
-            >
-              {status === "connecting" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Mic className="size-4" />
-              )}
-              {status === "connecting"
-                ? "Connecting..."
-                : "Start Voice Session"}
-            </Button>
-          </>
+          <p className="text-muted-foreground text-center text-sm">
+            Start a voice session to describe your situation.
+          </p>
         )}
       </div>
 
       {/* Input */}
-      <ChatInput onVoiceStart={userId ? handleStart : undefined} />
+      <ChatInput
+        voiceConnected={false}
+        isConnecting={status === "connecting"}
+        onVoiceToggle={userId ? () => {
+          handleStart().then(() => setVoiceConnected(true));
+        } : undefined}
+      />
     </div>
   );
 }
 
-function ChatInput({ onVoiceStart }: { onVoiceStart?: () => void }) {
+function ChatInput({
+  voiceConnected,
+  isConnecting,
+  onVoiceToggle,
+}: {
+  voiceConnected: boolean;
+  isConnecting: boolean;
+  onVoiceToggle?: () => void;
+}) {
   const [message, setMessage] = useState("");
   const addTranscript = useCaseStore((s) => s.addTranscript);
 
@@ -199,15 +199,22 @@ function ChatInput({ onVoiceStart }: { onVoiceStart?: () => void }) {
           placeholder="Type a message..."
           className="border-input bg-background placeholder:text-muted-foreground flex h-10 w-full rounded-md border px-3 text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-2"
         />
-        {onVoiceStart && (
+        {onVoiceToggle && (
           <Button
             type="button"
             size="icon"
-            variant="outline"
+            variant={voiceConnected ? "destructive" : "outline"}
             className="size-10 shrink-0"
-            onClick={onVoiceStart}
+            disabled={isConnecting}
+            onClick={onVoiceToggle}
           >
-            <Mic className="size-4" />
+            {isConnecting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : voiceConnected ? (
+              <MicOff className="size-4" />
+            ) : (
+              <Mic className="size-4" />
+            )}
           </Button>
         )}
         <Button

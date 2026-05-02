@@ -1,4 +1,3 @@
-import type { voice } from "@livekit/agents";
 import { caseStateService, type CaseUpdateResult } from "../case/state.js";
 import type { PlaybookDefinition } from "../playbooks/types.js";
 import { extractFacts } from "../extraction/keyword.js";
@@ -11,11 +10,7 @@ export class CaseOrchestrator {
   private playbook: PlaybookDefinition;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(
-    caseId: string,
-    playbook: PlaybookDefinition,
-    private session: voice.AgentSession,
-  ) {
+  constructor(caseId: string, playbook: PlaybookDefinition) {
     this.caseId = caseId;
     this.playbook = playbook;
   }
@@ -76,19 +71,19 @@ export class CaseOrchestrator {
       }
     }
 
-    // Get current state to decide next action
+    // Emit current state so the frontend stays in sync.
+    // The LLM tools (startIntake, note, orient) already guide the agent
+    // on what to ask next — the orchestrator should NOT call session.say()
+    // as that conflicts with the LLM-driven conversation flow.
     const state = await caseStateService.getState(this.caseId);
     if (!state) return;
 
     const nextQ = getNextQuestion(state.facts, this.playbook);
-
     if (nextQ) {
-      // Ask the next question — agent is the voice, orchestrator is the brain
-      this.session.say(nextQ.question);
-    } else if (state.completion >= 80 && !state.summary) {
-      this.session.say(
-        "I think I have a good understanding of your situation. Let me put together your case summary.",
-      );
+      await this.emitEvent("next_question", {
+        key: nextQ.key,
+        question: nextQ.question,
+      });
     }
   }
 

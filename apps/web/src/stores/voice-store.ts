@@ -5,7 +5,6 @@ interface VoiceSession {
   token: string;
   livekitUrl: string;
   caseId: string | null;
-  mock: boolean;
 }
 
 interface VoiceState {

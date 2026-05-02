@@ -20,8 +20,8 @@ export function ProfilePanel() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <PillTabs defaultValue="home" className="flex h-full flex-col gap-0">
+    <div className="flex h-full min-w-0 flex-col">
+      <PillTabs defaultValue="home" className="flex h-full min-w-0 flex-col gap-0">
         <div className="px-4 py-3">
           <PillTabsList>
             <PillTabsTrigger value="home">Home</PillTabsTrigger>
@@ -30,23 +30,26 @@ export function ProfilePanel() {
           </PillTabsList>
         </div>
 
-        <PillTabsContent value="home" className="overflow-auto p-4">
-          <div className="flex flex-col gap-4">
-            <Card className="bg-primary/5 ring-primary/20">
+        <PillTabsContent value="home" className="min-w-0 overflow-auto p-4">
+          <div className="flex min-w-0 flex-col gap-4">
+            <Card
+              className="w-full min-w-0 bg-primary/5 ring-primary/20"
+              style={{ maxWidth: "calc(100vw - 2rem)" }}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Phone className="size-4" />
                   Talk to Sol
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="break-words">
                   Start a voice conversation to discuss your case, update details, or get legal guidance.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="min-w-0 overflow-hidden">
                 <Button
                   onClick={handleCallSol}
                   disabled={!userId || status === "connecting"}
-                  className="w-full gap-2"
+                  className="w-full min-w-0 gap-2"
                 >
                   <Phone className="size-4" />
                   {status === "connecting" ? "Connecting..." : "Start Call"}
@@ -54,7 +57,10 @@ export function ProfilePanel() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card
+              className="w-full min-w-0"
+              style={{ maxWidth: "calc(100vw - 2rem)" }}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="size-4" />
@@ -76,7 +82,10 @@ export function ProfilePanel() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card
+              className="w-full min-w-0"
+              style={{ maxWidth: "calc(100vw - 2rem)" }}
+            >
               <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
                 <CardDescription>Your latest interactions</CardDescription>

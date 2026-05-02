@@ -12,11 +12,11 @@ export default function DashboardPage() {
       <DashboardSSE />
       <div className="flex h-screen flex-col">
         <DashboardHeader />
-        <div className="flex flex-1 overflow-hidden">
-          <main className="w-1/2 border-r">
+        <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
+          <main className="min-h-0 w-full flex-1 border-b md:w-1/2 md:border-r md:border-b-0">
             <ChatPanel />
           </main>
-          <aside className="w-1/2">
+          <aside className="min-h-0 w-full flex-1 md:w-1/2">
             <ProfilePanel />
           </aside>
         </div>

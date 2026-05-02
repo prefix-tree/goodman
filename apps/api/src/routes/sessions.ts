@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { ObjectId } from "mongodb";
 import { usersCollection } from "../entities/index.js";
 import { roomService, createParticipantToken } from "../livekit.js";
+import { caseStateService } from "../case/state.js";
 
 export const sessions = new Hono()
 
@@ -18,13 +19,17 @@ export const sessions = new Hono()
     if (!user) return c.json({ error: "User not found" }, 404);
 
     const roomName = `sol-${body.userId.slice(-6)}-${Date.now()}`;
+    const playbook = body.playbook ?? "general";
+    const caseId =
+      body.caseId ??
+      (await caseStateService.createCase(body.userId, playbook))._id.toHexString();
 
     const metadata = JSON.stringify({
       userId: body.userId,
       userName: user.name,
       userEmail: user.email,
-      playbook: body.playbook ?? "general",
-      caseId: body.caseId ?? null,
+      playbook,
+      caseId,
     });
 
     await roomService.createRoom({
@@ -41,7 +46,7 @@ export const sessions = new Hono()
     });
 
     return c.json(
-      { roomName, token, livekitUrl: process.env.LIVEKIT_URL },
+      { roomName, token, livekitUrl: process.env.LIVEKIT_URL, caseId },
       201,
     );
   });

@@ -55,17 +55,15 @@ function VoiceAssistantUI() {
           : "Connecting...";
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
       <BarVisualizer
         state={state}
         barCount={5}
         trackRef={audioTrack}
-        className="h-24 w-full max-w-md [--lk-bar-color:hsl(var(--primary))]"
+        className="h-16 w-full max-w-md [--lk-bar-color:hsl(var(--primary))]"
       />
-
-      <p className="text-muted-foreground text-sm capitalize">{stateLabel}</p>
-
-      <DisconnectButton className="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex h-10 items-center justify-center rounded-md px-6 text-sm font-medium transition-colors">
+      <p className="text-muted-foreground text-xs capitalize">{stateLabel}</p>
+      <DisconnectButton className="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex h-8 items-center justify-center rounded-md px-4 text-xs font-medium transition-colors">
         End Session
       </DisconnectButton>
     </div>
