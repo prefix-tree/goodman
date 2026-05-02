@@ -23,6 +23,10 @@ export interface CaseUpdateResult {
 
 export class CaseStateService {
   async getState(caseId: string): Promise<Case | null> {
+    if (!ObjectId.isValid(caseId)) {
+      console.error("[CaseStateService.getState] Invalid caseId:", caseId);
+      return null;
+    }
     return casesCollection().findOne({ _id: new ObjectId(caseId) });
   }
 
@@ -124,6 +128,10 @@ export class CaseStateService {
     text: string,
     isFinal: boolean,
   ): Promise<void> {
+    if (!ObjectId.isValid(caseId)) {
+      console.error("[CaseStateService.addTranscript] Invalid caseId:", caseId);
+      return;
+    }
     await transcriptSegmentsCollection().insertOne({
       _id: new ObjectId(),
       caseId: new ObjectId(caseId),

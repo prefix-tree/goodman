@@ -27,7 +27,7 @@ async function seed() {
   });
   console.log(`  User: Sarah (${userId.toHexString()})`);
 
-  // 2. Create case with immigration playbook
+  // 2. Create case with UK visitor visa playbook
   const caseDoc = await caseStateService.createCase(
     userId.toHexString(),
     "immigration",
@@ -44,7 +44,7 @@ async function seed() {
     },
     {
       speaker: "agent" as const,
-      text: "I understand. Can you tell me what type of visa you were applying for?",
+      text: "I understand. Which country are you applying from?",
     },
   ];
 
@@ -62,8 +62,10 @@ async function seed() {
 
   // 4. Process facts from the user's statement
   const result = await caseStateService.processAndUpdate(caseId, {
-    travel_purpose: "visit sister",
-    host_relationship: "sister",
+    applicant_nationality: "Ukrainian",
+    application_location: "Ukraine",
+    visit_purpose: "visit sister",
+    uk_host: "sister in London",
     previous_refusal: "yes, last year",
   });
 

@@ -4,6 +4,7 @@ import { PillTabs, PillTabsList, PillTabsTrigger, PillTabsContent } from "@/comp
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ProfileCases } from "@/components/profile/cases";
 import { CaseDetail } from "@/components/profile/case-detail";
+import { ProfileNotes } from "@/components/profile/notes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useVoiceSession } from "@/hooks/use-voice-session";
@@ -26,6 +27,7 @@ export function ProfilePanel() {
           <PillTabsList>
             <PillTabsTrigger value="home">Home</PillTabsTrigger>
             <PillTabsTrigger value="cases">Cases</PillTabsTrigger>
+            <PillTabsTrigger value="notes">Notes</PillTabsTrigger>
             <PillTabsTrigger value="details">Details</PillTabsTrigger>
           </PillTabsList>
         </div>
@@ -82,20 +84,7 @@ export function ProfilePanel() {
               </CardContent>
             </Card>
 
-            <Card
-              className="w-full min-w-0"
-              style={{ maxWidth: "calc(100vw - 2rem)" }}
-            >
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Your latest interactions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  No recent activity yet. Start a voice session to get going.
-                </p>
-              </CardContent>
-            </Card>
+            <ProfileNotes compact />
           </div>
         </PillTabsContent>
 
@@ -110,6 +99,10 @@ export function ProfilePanel() {
             </div>
             <ProfileCases />
           </div>
+        </PillTabsContent>
+
+        <PillTabsContent value="notes" className="overflow-auto p-4">
+          <ProfileNotes />
         </PillTabsContent>
 
         <PillTabsContent value="details" className="overflow-auto p-4">

@@ -1,102 +1,157 @@
 import type { PlaybookDefinition } from "./types.js";
 
+function textValue(facts: Record<string, unknown>, key: string): string {
+  const value = facts[key];
+  return typeof value === "string" ? value.toLowerCase() : "";
+}
+
+function hasAffirmativeFact(facts: Record<string, unknown>, key: string): boolean {
+  const value = textValue(facts, key);
+  return value !== "" && !["no", "none", "never", "not applicable", "n/a"].includes(value);
+}
+
 export const immigration: PlaybookDefinition = {
   id: "immigration",
-  label: "UK Immigration",
+  label: "UK Visitor Visa",
 
   requiredFacts: [
     {
-      key: "nationality",
-      label: "Nationality",
+      key: "applicant_nationality",
+      label: "Applicant nationality",
       patterns: [
-        "(?:i am|i'm|from)\\s+(\\w+)",
-        "(\\w+)\\s+passport",
-        "citizen(?:ship)?\\s+(?:is|of)\\s+(\\w+)",
+        "(?:i am|i'm|im|from)\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
+        "([a-z][a-z\\s-]+?)\\s+passport",
+        "citizen(?:ship)?\\s+(?:is|of)\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
       ],
       question: "What is your nationality?",
       required: true,
     },
     {
-      key: "visa_type",
-      label: "Type of visa",
+      key: "application_location",
+      label: "Applying from",
       patterns: [
-        "(visitor|student|work|tourist|family|spouse)\\s*visa",
-        "visa\\s+(?:type|for)\\s+(\\w+)",
+        "applying\\s+from\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
+        "currently\\s+(?:in|living in|based in)\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
+        "i live in\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
       ],
-      question: "What type of visa are you applying for?",
+      question: "Which country are you applying from?",
       required: true,
     },
     {
-      key: "travel_purpose",
-      label: "Purpose of travel",
+      key: "visit_purpose",
+      label: "Purpose of visit",
       patterns: [
-        "(?:visit|see|stay with)\\s+(?:my\\s+)?(\\w+)",
-        "going\\s+(?:for|to)\\s+(\\w+)",
-        "want\\s+to\\s+(visit|see|attend|study|work)",
+        "(?:visit|see|stay with)\\s+(?:my\\s+)?([a-z][a-z\\s-]+?)(?:\\.|,|$)",
+        "(?:tourism|holiday|vacation|business meeting|conference|family visit|medical treatment)",
+        "going\\s+(?:to the uk|to britain|there)?\\s*(?:for|to)\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
       ],
-      question: "What is the purpose of your visit to the UK?",
+      question: "What is the main purpose of your visit to the UK?",
       required: true,
+    },
+    {
+      key: "visit_duration",
+      label: "Visit duration",
+      patterns: [
+        "(?:for|about|around)\\s+(\\d+\\s+(?:days|weeks|months))",
+        "(?:stay|staying)\\s+(?:for|about|around)?\\s*(\\d+\\s+(?:days|weeks|months))",
+        "(one|two|three|four|five|six)\\s+(?:days|weeks|months)",
+      ],
+      question: "How long do you plan to stay in the UK?",
+      required: true,
+    },
+    {
+      key: "travel_dates",
+      label: "Travel dates",
+      patterns: [
+        "(?:travel|arrive|leave|visit)\\s+(?:in|on|around)?\\s*([a-z]+\\s+\\d{4})",
+        "(?:in|around)\\s+([a-z]+\\s+\\d{4})",
+        "(next month|next week|next year)",
+      ],
+      question: "When do you plan to travel?",
+      required: true,
+    },
+    {
+      key: "uk_host",
+      label: "UK host or accommodation",
+      patterns: [
+        "(?:stay with|staying with|visit|see)\\s+(?:my\\s+)?([a-z][a-z\\s-]+?)(?:\\.|,|$)",
+        "(?:hotel|airbnb|hostel|friend|sister|brother|cousin|uncle|aunt|partner|family)",
+        "invitation\\s+(?:from|letter from)\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
+      ],
+      question: "Where will you stay in the UK, and is anyone hosting you?",
+      required: true,
+    },
+    {
+      key: "employment_or_study_status",
+      label: "Employment or study status",
+      patterns: [
+        "(employed|self-employed|self employed|unemployed|retired|student|business owner)",
+        "(?:i work|working)\\s+(?:as|at|for|in)\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
+        "(?:i study|studying)\\s+(?:at|in)\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
+      ],
+      question: "What do you currently do for work or study?",
+      required: true,
+    },
+    {
+      key: "monthly_income",
+      label: "Monthly income",
+      patterns: [
+        "(?:earn|income|salary)\\s+(?:is\\s+)?(?:about\\s+)?[£$]?\\s*(\\d+(?:,\\d{3})*(?:\\.\\d{2})?)",
+        "[£$]\\s*(\\d+(?:,\\d{3})*(?:\\.\\d{2})?)\\s+(?:per month|monthly|a month)",
+      ],
+      question: "What is your approximate monthly income?",
+      required: true,
+    },
+    {
+      key: "trip_funding",
+      label: "Trip funding",
+      patterns: [
+        "(?:paying|funding|covering)\\s+(?:for\\s+)?(?:the trip|it)?\\s*(?:myself|by myself|with savings|from savings)",
+        "(?:sponsor|sponsored|paid by|supported by)\\s+([a-z][a-z\\s-]+?)(?:\\.|,|$)",
+        "(?:my\\s+)?(father|mother|sister|brother|partner|employer|company)\\s+(?:will pay|is paying|sponsors)",
+      ],
+      question: "Who will pay for the trip, and from what funds?",
+      required: true,
+    },
+    {
+      key: "home_ties",
+      label: "Ties to home country",
+      patterns: [
+        "(?:job|work|employment|business|property|family|children|spouse|studies|school|university)",
+        "(?:return|come back)\\s+(?:because|for|to)\\s+(.+?)(?:\\.|$)",
+      ],
+      question: "What ties do you have to your home country that show you will return?",
+      required: true,
+    },
+    {
+      key: "previous_uk_travel",
+      label: "Previous UK or international travel",
+      patterns: [
+        "(?:visited|travelled|traveled)\\s+(?:to\\s+)?(?:the\\s+)?(uk|united kingdom|europe|usa|canada|schengen)",
+        "(?:never travelled|never traveled|first time travelling|first time traveling)",
+      ],
+      question: "Have you travelled to the UK or other countries before?",
+      required: false,
     },
     {
       key: "previous_refusal",
       label: "Previous visa refusal",
       patterns: [
         "(refused|denied|rejected|refusal|turned down)",
-        "visa\\s+was\\s+(not approved|declined)",
+        "(?:visa|application)\\s+was\\s+(not approved|declined)",
+        "(?:no|never)\\s+(?:visa\\s+)?(?:refusal|refused|denied)",
       ],
-      question: "Have you had any previous visa refusals?",
+      question: "Have you ever had a UK or other visa refusal?",
       required: true,
-    },
-    {
-      key: "refusal_date",
-      label: "Refusal date",
-      patterns: [
-        "refused\\s+(?:in|on|last|around)?\\s*(\\d{4})",
-        "(last year|\\d+\\s+months? ago|\\d{4})",
-      ],
-      question: "When was the refusal?",
-      required: false,
     },
     {
       key: "refusal_reason",
       label: "Refusal reason",
       patterns: [
-        "reason\\s+(?:was|being)\\s+(.+?)(?:\\.|$)",
+        "(?:reason|refusal reason)\\s+(?:was|being|is)\\s+(.+?)(?:\\.|$)",
         "(?:because|they said)\\s+(.+?)(?:\\.|$)",
       ],
-      question: "Do you know the reason for the refusal?",
-      required: false,
-    },
-    {
-      key: "financial_situation",
-      label: "Financial situation",
-      patterns: [
-        "(employed|self[- ]employed|unemployed|retired|student)",
-        "(?:savings|sponsor|supported by|paid by)\\s+(\\w+)",
-        "(?:i work|working)\\s+(?:as|at|for|in)\\s+(\\w+)",
-      ],
-      question: "How will you fund your trip? Are you employed?",
-      required: true,
-    },
-    {
-      key: "travel_dates",
-      label: "Intended travel dates",
-      patterns: [
-        "(?:in|on|around|for)\\s+(\\w+\\s+\\d{4})",
-        "(next month|next week|next year)",
-        "(?:for|about|around)\\s+(\\d+\\s+(?:days|weeks|months))",
-      ],
-      question: "When do you plan to travel, and for how long?",
-      required: true,
-    },
-    {
-      key: "host_relationship",
-      label: "Relationship to host",
-      patterns: [
-        "(?:visit|see|stay with)\\s+(?:my\\s+)?(sister|brother|friend|cousin|uncle|aunt|family|relative|partner|wife|husband)",
-        "(sister|brother|friend|cousin|uncle|aunt|family|relative|partner)\\s+(?:in|lives in|who lives)",
-      ],
-      question: "Who will you be staying with, and what is your relationship to them?",
+      question: "If there was a refusal, what reason did they give?",
       required: false,
     },
   ],
@@ -104,66 +159,85 @@ export const immigration: PlaybookDefinition = {
   riskRules: [
     {
       id: "previous_refusal",
-      label: "Previous visa refusal detected",
+      label: "Previous visa refusal needs careful explanation",
       severity: "high",
+      condition: (facts) => hasAffirmativeFact(facts, "previous_refusal"),
+    },
+    {
+      id: "weak_home_ties",
+      label: "Home country ties are not clearly evidenced yet",
+      severity: "medium",
+      condition: (facts) => !("home_ties" in facts),
+    },
+    {
+      id: "third_party_sponsor",
+      label: "Third-party funding will need sponsor evidence",
+      severity: "medium",
       condition: (facts) => {
-        const v = facts.previous_refusal;
+        const funding = textValue(facts, "trip_funding");
         return (
-          typeof v === "string" &&
-          !["no", "none", "never"].includes(v.toLowerCase())
+          funding.includes("sponsor") ||
+          funding.includes("paid by") ||
+          funding.includes("supported by") ||
+          funding.includes("father") ||
+          funding.includes("mother") ||
+          funding.includes("sister") ||
+          funding.includes("brother") ||
+          funding.includes("partner")
         );
       },
     },
     {
-      id: "no_employment",
-      label: "No clear employment or financial support",
+      id: "unclear_finances",
+      label: "Financial position is incomplete",
       severity: "medium",
-      condition: (facts) => !("financial_situation" in facts),
-    },
-    {
-      id: "missing_financials",
-      label: "Additional financial documentation likely required",
-      severity: "medium",
-      condition: (facts) => {
-        const v = facts.financial_situation;
-        return (
-          typeof v === "string" &&
-          ["self-employed", "unemployed", "sponsor", "retired"].includes(
-            v.toLowerCase(),
-          )
-        );
-      },
+      condition: (facts) =>
+        !("monthly_income" in facts) || !("trip_funding" in facts),
     },
   ],
 
   requiredDocuments: [
-    { id: "passport", label: "Valid passport" },
-    { id: "bank_statements", label: "Bank statements (last 6 months)" },
+    { id: "passport", label: "Current passport" },
+    { id: "travel_itinerary", label: "Planned travel dates and itinerary" },
+    { id: "bank_statements", label: "Personal bank statements" },
+    { id: "income_evidence", label: "Payslips, tax records, or business income evidence" },
+    { id: "employment_or_study_letter", label: "Employer, business, or study confirmation" },
+    { id: "home_ties_evidence", label: "Evidence of home ties, such as job, family, property, or study commitments" },
     {
-      id: "employment_letter",
-      label: "Employment letter or business registration",
+      id: "accommodation_evidence",
+      label: "Hotel booking or host accommodation details",
+      conditionFacts: ["uk_host"],
     },
     {
       id: "invitation_letter",
-      label: "Invitation letter from host",
-      conditionFacts: ["host_relationship"],
+      label: "Invitation letter and host status evidence",
+      conditionFacts: ["uk_host"],
+    },
+    {
+      id: "sponsor_evidence",
+      label: "Sponsor bank statements and relationship evidence",
+      conditionFacts: ["trip_funding"],
     },
     {
       id: "previous_refusal_letter",
-      label: "Previous refusal letter",
+      label: "Previous refusal notice and explanation",
       conditionFacts: ["previous_refusal"],
     },
   ],
 
   questionOrder: [
-    "nationality",
-    "travel_purpose",
-    "visa_type",
-    "previous_refusal",
-    "refusal_date",
-    "refusal_reason",
-    "financial_situation",
+    "applicant_nationality",
+    "application_location",
+    "visit_purpose",
+    "visit_duration",
     "travel_dates",
-    "host_relationship",
+    "uk_host",
+    "employment_or_study_status",
+    "monthly_income",
+    "trip_funding",
+    "home_ties",
+    "previous_uk_travel",
+    "previous_refusal",
+    "refusal_reason",
   ],
 };

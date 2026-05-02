@@ -7,6 +7,20 @@ import { getPlaybook } from "../playbooks/index.js";
 import { getNextQuestion } from "../extraction/question.js";
 import type { SessionUserData } from "./types.js";
 
+const API_URL = process.env.API_URL ?? "http://localhost:3001";
+
+async function emitCaseEvent(caseId: string, event: string, data: unknown) {
+  try {
+    await fetch(`${API_URL}/_internal/case-events`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caseId, event, data }),
+    });
+  } catch {
+    // HTTP server may not be reachable
+  }
+}
+
 // ─── TOOL 1: start_intake ───────────────────────────────────
 
 export const startIntake = llm.tool({
@@ -57,6 +71,18 @@ export const startIntake = llm.tool({
         : "All tasks completed.",
     };
     console.log("[tool:start_intake] result:", JSON.stringify(result, null, 2));
+
+    // Emit initial state to frontend via SSE
+    await emitCaseEvent(caseId!, "case_update", {
+      caseId,
+      facts: caseDoc.facts,
+      checklist: caseDoc.checklist,
+      risks: caseDoc.risks,
+      requirements: caseDoc.requirements,
+      completion: caseDoc.completion,
+      nextQuestion: null,
+    });
+
     return result;
   },
 });
@@ -70,7 +96,7 @@ export const note = llm.tool({
     facts: z
       .record(z.string(), z.unknown())
       .describe(
-        "Structured object of facts. Keys should match playbook fact keys where possible, e.g. { nationality: 'Indian', visa_type: 'work' }",
+        "Structured object of facts. Keys should match playbook fact keys where possible, e.g. { applicant_nationality: 'Indian', visit_purpose: 'visit family' }",
       ),
     completes_task_id: z
       .string()
@@ -194,6 +220,10 @@ export const note = llm.tool({
       suggestion,
     };
     console.log("[tool:note] result:", JSON.stringify(noteResult, null, 2));
+
+    // Emit to frontend via SSE
+    await emitCaseEvent(caseId, "case_update", result);
+
     return noteResult;
   },
 });

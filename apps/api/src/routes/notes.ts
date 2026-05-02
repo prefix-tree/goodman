@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { ObjectId } from "mongodb";
 import { notesCollection } from "../entities/index.js";
+import { caseStateService } from "../case/state.js";
+import { caseEventBus } from "../realtime/event-bus.js";
 
 export const notes = new Hono()
 
@@ -35,7 +37,21 @@ export const notes = new Hono()
       updatedAt: now,
     });
     const doc = await notesCollection().findOne({ _id: result.insertedId });
-    return c.json(doc, 201);
+    const caseUpdate = await caseStateService.updateFromTranscript(
+      body.caseId,
+      body.content,
+    );
+
+    if (caseUpdate) {
+      caseEventBus.publish({
+        caseId: body.caseId,
+        event: "case_update",
+        data: caseUpdate,
+        timestamp: Date.now(),
+      });
+    }
+
+    return c.json({ ...doc, caseUpdate }, 201);
   })
 
   .patch("/:id", async (c) => {

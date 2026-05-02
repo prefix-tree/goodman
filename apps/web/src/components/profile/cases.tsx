@@ -10,8 +10,12 @@ const columns: KanbanColumn[] = [
     id: "open",
     title: "Open",
     items: [
-      { id: "1", title: "Intake call", badge: { label: "New" } },
-      { id: "2", title: "Document review" },
+      {
+        id: "1",
+        title: "EU Blue Card — Germany",
+        description: "Work visa for software engineering role in Berlin",
+        badge: { label: "Active" },
+      },
     ],
   },
   {
@@ -19,10 +23,15 @@ const columns: KanbanColumn[] = [
     title: "In Progress",
     items: [
       {
-        id: "3",
-        title: "Follow-up scheduled",
-        description: "Awaiting client response",
+        id: "2",
+        title: "Document collection",
+        description: "Passport, contract, degree apostille",
         badge: { label: "Priority", variant: "destructive" },
+      },
+      {
+        id: "3",
+        title: "Embassy appointment",
+        description: "German consulate in Warsaw",
       },
     ],
   },
@@ -30,7 +39,18 @@ const columns: KanbanColumn[] = [
     id: "closed",
     title: "Closed",
     items: [
-      { id: "4", title: "Initial consultation", badge: { label: "Done", variant: "outline" } },
+      {
+        id: "4",
+        title: "Initial intake call",
+        description: "Visa type and eligibility confirmed",
+        badge: { label: "Done", variant: "outline" },
+      },
+      {
+        id: "5",
+        title: "Salary threshold check",
+        description: "€72k exceeds €43.8k minimum",
+        badge: { label: "Done", variant: "outline" },
+      },
     ],
   },
 ];

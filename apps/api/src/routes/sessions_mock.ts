@@ -70,24 +70,28 @@ async function runMockAgent(
       {
         text: "I'm Nigerian and I want to visit my sister in London. I had a visa refusal last year.",
         facts: {
-          nationality: "Nigerian",
-          travel_purpose: "visit sister",
-          host_relationship: "sister",
+          applicant_nationality: "Nigerian",
+          application_location: "Nigeria",
+          visit_purpose: "visit sister",
+          uk_host: "sister in London",
           previous_refusal: "yes, last year",
         },
       },
       {
-        text: "I was applying for a visitor visa. They said I didn't have enough financial evidence.",
+        text: "They said I didn't have enough financial evidence. I will stay for two weeks in August 2025.",
         facts: {
-          visa_type: "visitor",
           refusal_reason: "insufficient financial evidence",
+          visit_duration: "two weeks",
+          travel_dates: "August 2025",
         },
       },
       {
-        text: "I'm employed as a software engineer. I plan to travel in August 2025 for two weeks.",
+        text: "I'm employed as a software engineer, earn about 3000 per month, and will pay from my savings. I have my job and family to return to.",
         facts: {
-          financial_situation: "employed",
-          travel_dates: "August 2025, two weeks",
+          employment_or_study_status: "employed as a software engineer",
+          monthly_income: "3000",
+          trip_funding: "savings",
+          home_ties: "job and family",
         },
       },
     ],

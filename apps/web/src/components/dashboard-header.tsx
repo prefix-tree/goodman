@@ -27,7 +27,12 @@ export function DashboardHeader() {
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b px-4">
-      <span className="text-sm font-semibold tracking-tight">SOL</span>
+      <div className="min-w-0">
+        <span className="block text-sm font-semibold tracking-tight">SOL</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          Better Call Sol
+        </span>
+      </div>
 
       <div className="flex items-center gap-2">
         <Button

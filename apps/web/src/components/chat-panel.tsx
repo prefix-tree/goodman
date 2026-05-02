@@ -17,6 +17,7 @@ export function ChatPanel() {
   const { session, status, error, connect, disconnect } = useVoiceSession();
 
   const completion = useCaseStore((s) => s.completion);
+  const storeCaseId = useCaseStore((s) => s.caseId);
   const transcript = useCaseStore((s) => s.transcript);
   const currentQuestion = useCaseStore((s) => s.currentQuestion);
 
@@ -24,7 +25,8 @@ export function ChatPanel() {
   const [voiceConnected, setVoiceConnected] = useState(false);
 
   const playbook = searchParams.get("playbook") ?? undefined;
-  const caseId = searchParams.get("caseId") ?? undefined;
+  const paramCaseId = searchParams.get("caseId") ?? undefined;
+  const caseId = storeCaseId ?? session?.caseId ?? paramCaseId;
 
   const isActive = !!session || !!caseId;
 
@@ -37,7 +39,7 @@ export function ChatPanel() {
 
   async function handleStart() {
     if (!userId) return;
-    await connect({ userId, playbook, caseId });
+    await connect({ userId, playbook, caseId: caseId ?? undefined });
   }
 
   function handleVoiceToggle() {
@@ -121,6 +123,8 @@ export function ChatPanel() {
 
         {/* Input */}
         <ChatInput
+          caseId={caseId ?? null}
+          userId={userId}
           voiceConnected={voiceConnected}
           isConnecting={status === "connecting"}
           onVoiceToggle={handleVoiceToggle}
@@ -152,6 +156,8 @@ export function ChatPanel() {
 
       {/* Input */}
       <ChatInput
+        caseId={caseId ?? null}
+        userId={userId}
         voiceConnected={false}
         isConnecting={status === "connecting"}
         onVoiceToggle={userId ? () => {
@@ -163,10 +169,14 @@ export function ChatPanel() {
 }
 
 function ChatInput({
+  caseId,
+  userId,
   voiceConnected,
   isConnecting,
   onVoiceToggle,
 }: {
+  caseId: string | null;
+  userId: string | null;
   voiceConnected: boolean;
   isConnecting: boolean;
   onVoiceToggle?: () => void;
@@ -174,7 +184,7 @@ function ChatInput({
   const [message, setMessage] = useState("");
   const addTranscript = useCaseStore((s) => s.addTranscript);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const text = message.trim();
     if (!text) return;
@@ -187,6 +197,14 @@ function ChatInput({
     });
 
     setMessage("");
+
+    if (!caseId || !userId) return;
+
+    await fetch("/api/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caseId, userId, content: text }),
+    });
   }
 
   return (
