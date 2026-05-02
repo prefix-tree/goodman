@@ -3,35 +3,44 @@ import { LLM, TTS } from "@livekit/agents-plugin-openai";
 import * as silero from "@livekit/agents-plugin-silero";
 import { voice } from "@livekit/agents";
 import { fileURLToPath } from "node:url";
-import { lookupContact, scheduleCallback, transferCall } from "./tools.js";
+import { connectDb } from "../db.js";
+import { buildInstructions } from "./playbooks.js";
+import type { SessionUserData } from "./types.js";
+import {
+  lookupContact,
+  scheduleCallback,
+  transferCall,
+  createCase,
+  addNote,
+  listCases,
+} from "./tools.js";
 
 export default defineAgent({
   prewarm: async (proc: JobProcess) => {
     proc.userData.vad = await silero.VAD.load();
+    await connectDb();
   },
 
   entry: async (ctx: JobContext) => {
     await ctx.connect();
 
+    const meta: SessionUserData = JSON.parse(ctx.room.metadata ?? "{}");
+    const instructions = buildInstructions(meta.playbook ?? "general", meta.userName ?? "there");
+
     const agent = new voice.Agent({
-      instructions: [
-        "You are a helpful voice assistant for Solea.",
-        "Be concise and friendly. Keep responses short — ideally one or two sentences.",
-        "When the caller asks to speak with a person, use the transferCall tool.",
-        "When the caller wants a callback, use the scheduleCallback tool.",
-        "You can look up contacts by name using the lookupContact tool.",
-      ].join(" "),
-      tools: { lookupContact, scheduleCallback, transferCall },
+      instructions,
+      tools: { lookupContact, scheduleCallback, transferCall, createCase, addNote, listCases },
     });
 
-    const session = new voice.AgentSession({
+    const session = new voice.AgentSession<SessionUserData>({
       vad: ctx.proc.userData.vad as silero.VAD,
       llm: new LLM({ model: "gpt-4o-mini" }),
       tts: new TTS({ voice: "ash" }),
+      userData: meta,
     });
 
     await session.start({ agent, room: ctx.room });
-    session.say("Hello! How can I help you today?");
+    session.say(`Hello${meta.userName ? ` ${meta.userName}` : ""}! How can I help you today?`);
   },
 });
 

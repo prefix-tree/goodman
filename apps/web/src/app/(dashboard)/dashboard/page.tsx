@@ -4,10 +4,10 @@ import { ProfilePanel } from "@/components/profile-panel";
 export default function DashboardPage() {
   return (
     <div className="flex h-screen">
-      <main className="flex-1">
+      <main className="w-1/2 border-r">
         <ChatPanel />
       </main>
-      <aside className="w-80 border-l">
+      <aside className="w-1/2">
         <ProfilePanel />
       </aside>
     </div>
