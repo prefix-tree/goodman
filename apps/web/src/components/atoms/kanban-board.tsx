@@ -23,7 +23,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ columns, className }: KanbanBoardProps) {
   return (
-    <div className={cn("flex gap-3 overflow-x-auto", className)}>
+    <div className={cn("grid gap-3", className)} style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}>
       {columns.map((column) => (
         <KanbanColumnView key={column.id} column={column} />
       ))}
@@ -33,7 +33,7 @@ export function KanbanBoard({ columns, className }: KanbanBoardProps) {
 
 function KanbanColumnView({ column }: { column: KanbanColumn }) {
   return (
-    <div className="flex w-52 shrink-0 flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <div className="flex items-center justify-between px-1">
         <span className="text-xs font-medium text-muted-foreground">
           {column.title}
@@ -54,17 +54,17 @@ function KanbanColumnView({ column }: { column: KanbanColumn }) {
 
 function KanbanCard({ item }: { item: KanbanItem }) {
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>{item.title}</CardTitle>
+    <Card size="sm" className="gap-2 py-2.5">
+      <CardHeader className="px-3">
+        <CardTitle className="text-xs leading-snug">{item.title}</CardTitle>
       </CardHeader>
       {(item.description || item.badge) && (
-        <CardContent className="flex flex-col gap-2">
+        <CardContent className="flex flex-col gap-1.5 px-3">
           {item.description && (
             <p className="text-xs text-muted-foreground">{item.description}</p>
           )}
           {item.badge && (
-            <Badge variant={item.badge.variant ?? "secondary"}>
+            <Badge variant={item.badge.variant ?? "secondary"} className="w-fit text-[10px]">
               {item.badge.label}
             </Badge>
           )}

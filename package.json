@@ -2,7 +2,7 @@
   "name": "shadcn-dashboard",
   "private": true,
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "dev": "pnpm --filter web dev & pnpm --filter api dev & pnpm --filter api dev:agent & wait",
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",
     "dev:agent": "pnpm --filter api dev:agent",

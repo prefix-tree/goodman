@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "dev:agent": "tsx watch src/agent/index.ts dev",
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "dev:agent": "tsx watch --env-file=.env src/agent/index.ts dev",
     "build": "tsup src/index.ts src/agent/index.ts --format esm --dts",
     "start": "node dist/index.js",
     "start:agent": "node dist/agent/index.js start",

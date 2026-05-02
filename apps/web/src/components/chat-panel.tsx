@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { Mic, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Thread } from "@/components/assistant-ui/thread";
 import { VoiceSession } from "@/components/voice-session";
 import { useVoiceSession } from "@/hooks/use-voice-session";
 import { useUserStore } from "@/stores/user-store";
 import { useCaseStore } from "@/stores/case-store";
+import { useTranscriptRuntime } from "@/lib/transcript-runtime";
 
 export function ChatPanel() {
   const searchParams = useSearchParams();
@@ -17,20 +18,11 @@ export function ChatPanel() {
   const { session, status, error, connect, disconnect } = useVoiceSession();
 
   const completion = useCaseStore((s) => s.completion);
-  const transcript = useCaseStore((s) => s.transcript);
-  const currentQuestion = useCaseStore((s) => s.currentQuestion);
-
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const playbook = searchParams.get("playbook") ?? undefined;
   const caseId = searchParams.get("caseId") ?? undefined;
 
-  // Auto-scroll transcript
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [transcript]);
+  const runtime = useTranscriptRuntime();
 
   async function handleStart() {
     if (!userId) return;
@@ -60,39 +52,12 @@ export function ChatPanel() {
           />
         </div>
 
-        {/* Transcript */}
-        <ScrollArea className="flex-1" ref={scrollRef}>
-          <div className="space-y-3 p-4">
-            {transcript.length === 0 && (
-              <p className="text-muted-foreground text-center text-sm">
-                Start speaking — your conversation will appear here.
-              </p>
-            )}
-            {transcript.map((entry, i) => (
-              <div
-                key={i}
-                className={`flex ${entry.speaker === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                    entry.speaker === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
-                  } ${!entry.isFinal ? "opacity-60" : ""}`}
-                >
-                  {entry.text}
-                </div>
-              </div>
-            ))}
-            {currentQuestion && (
-              <div className="flex justify-start">
-                <div className="bg-primary/10 text-primary max-w-[80%] rounded-lg border border-dashed px-3 py-2 text-sm">
-                  Next: {currentQuestion.question}
-                </div>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+        {/* Transcript via assistant-ui Thread */}
+        <div className="flex-1 overflow-hidden">
+          <AssistantRuntimeProvider runtime={runtime}>
+            <Thread />
+          </AssistantRuntimeProvider>
+        </div>
       </div>
     );
   }

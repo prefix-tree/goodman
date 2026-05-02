@@ -1,14 +1,46 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Mic } from "lucide-react"
+import { Mic, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useUserStore } from "@/stores/user-store"
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const setUser = useUserStore((s) => s.setUser)
+  const existingUserId = useUserStore((s) => s.userId)
+  const [loading, setLoading] = useState(false)
 
-  function handleStart() {
-    router.push("/onboarding/situation")
+  async function handleStart() {
+    // If user already exists (e.g. page refresh), skip creation
+    if (existingUserId) {
+      router.push("/onboarding/situation")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: `guest-${Date.now()}@solea.ai`,
+          name: "Guest",
+        }),
+      })
+      if (!res.ok) throw new Error("Failed to create user")
+
+      const user = await res.json()
+      // MongoDB ObjectId may come as string or { $oid: "..." }
+      const rawId = user._id ?? user.id
+      const id = typeof rawId === "object" && rawId.$oid ? rawId.$oid : String(rawId)
+      setUser(id, user.name ?? "Guest")
+      router.push("/onboarding/situation")
+    } catch (err) {
+      console.error("Failed to create user:", err)
+      setLoading(false)
+    }
   }
 
   return (
@@ -59,9 +91,18 @@ export default function OnboardingPage() {
       </div>
 
       {/* CTA */}
-      <Button size="lg" className="h-12 px-8 text-base" onClick={handleStart}>
-        <Mic className="size-5" />
-        Start with your situation
+      <Button
+        size="lg"
+        className="h-12 px-8 text-base"
+        onClick={handleStart}
+        disabled={loading}
+      >
+        {loading ? (
+          <Loader2 className="size-5 animate-spin" />
+        ) : (
+          <Mic className="size-5" />
+        )}
+        {loading ? "Getting ready..." : "Start with your situation"}
       </Button>
     </div>
   )
